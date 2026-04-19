@@ -1,0 +1,31 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Unity specific
+*.pidb.meta
+*.asset.meta
+Assembly-CSharp.csproj
+Assembly-CSharp-firstpass.csproj
+
+# Backup files
+*.backup
+~*
