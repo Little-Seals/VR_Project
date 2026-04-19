@@ -22,7 +22,7 @@
 
 ## 项目结构
 
-本项目分为 `ForceController`、`OppositeDirController` 和 `UnidirController` 三个模块，三者之间相互独立，分别测试了不同的功能。
+本项目分为 `ForceController`、`OppositeDirController`、`UnidirController` 和 `Force_Pos_ctr` 四个模块，三者之间相互独立，分别测试了不同的功能。
 
 ```
 VR_Project/
@@ -45,15 +45,25 @@ VR_Project/
 │           └── Scripts/
 │               ├── SerialController.cs    # 串口通信基类
 │               └── PosController.cs       # 位置控制
-└── UnidirController/         # 电机位置读取模块
+├── UnidirController/         # 电机位置读取模块
+│   ├── ESP32code/           # ESP32 固件
+│   │   └── src/
+│   │       └── main.cpp     # 电机控制主程序
+│   └── UnityProject/        # Unity 项目
+│       └── Assets/
+│           └── Scripts/
+│               ├── SerialController.cs    # 串口通信基类
+│               └── ReadData.cs            # 电机位置数据读取
+└── Force_Pos_ctr/           # 位置同步力反馈模块
     ├── ESP32code/           # ESP32 固件
-    │   └── src/
-    │       └── main.cpp     # 电机控制主程序
-    └── UnityProject/        # Unity 项目
+    │   ├── src/
+    │   │   └── main.cpp     # 电机控制主程序（力矩模式+位置指令）
+    │   └── platformio.ini   # PlatformIO 配置
+    └── Force-Pos-ctr/       # Unity 项目
         └── Assets/
             └── Scripts/
                 ├── SerialController.cs    # 串口通信基类
-                └── ReadData.cs            # 电机位置数据读取
+                └── ReadData.cs            # 位置同步控制
 ```
 
 > ⚠️ **注意**: ForceController 模块的功能尚不稳定，容易出现边界抖动。建议转动电机时将电机输出摇臂和底座握紧，且用力不用过大。在 Unity 中设置碰撞扭矩值小一些也能一定程度上缓解该问题。
@@ -184,7 +194,7 @@ VR_Project/
 
 监控串口接收的角度数据并输出到调试控制台。
 
-### ReadData
+### ReadData（UnidirController）
 
 读取串口角度数据并同步到 Unity 物体旋转。
 
@@ -193,6 +203,29 @@ VR_Project/
 - 接收 ESP32 发送的角度数据
 - 同步角度到目标物体的 Y 轴旋转
 - 线程安全的数据处理
+
+### ReadData（Force_Pos_ctr）
+
+实现位置同步力反馈控制，通过 PID 角度环实现 Unity 物体与电机的位置同步。
+
+主要功能:
+
+- 接收 ESP32 发送的电机角度数据
+- 计算 Unity 物体与电机角度差
+- 使用 PID 控制（Kp=20）计算并施加力矩
+- 发送目标角度指令到 ESP32
+- 支持最短路径角度计算
+
+可配置参数:
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| Kp | 20f | 角度环比例增益 |
+
+控制算法:
+
+- 电机力矩 = Kp × (电机角度 - Unity物体角度)
+- Unity 发送目标角度到 ESP32，格式为 `T<弧度值>`
 
 ---
 
