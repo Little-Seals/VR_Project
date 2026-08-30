@@ -50,6 +50,7 @@ public abstract class SerialController : MonoBehaviour
     /// </summary>
     protected virtual void Start()
     {
+        
         // 检查并设置目标立方体，默认使用当前对象的变换组件
         if (targetCube == null)
             targetCube = this.transform;
@@ -66,6 +67,10 @@ public abstract class SerialController : MonoBehaviour
 
         // 打开串口端口以进行后续通信
         OpenSerialPort();
+        
+        // 发送启动信号给ESP32，实现同步通信开启
+        // 等待一小段时间确保串口完全打开后再发送启动命令
+        Invoke("SendStartSignal", 0.5f);
     }
 
 
@@ -312,5 +317,18 @@ public abstract class SerialController : MonoBehaviour
         }
 
         Debug.Log("串口已关闭");
+    }
+    
+    /// <summary>
+    /// 发送启动信号给ESP32
+    /// </summary>
+    private void SendStartSignal()
+    {
+        if (IsConnected())
+        {
+            // 发送'S'命令启动通信（与ESP32端的握手协议对应）
+            SendData("S");
+            Debug.Log("已发送启动信号给ESP32");
+        }
     }
 }

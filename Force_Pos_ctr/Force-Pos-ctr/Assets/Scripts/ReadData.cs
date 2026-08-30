@@ -7,7 +7,8 @@ public class ReadData : SerialController
     private float _lastSentAngle = 0f;
     private const float AngleThreshold = 0f;
     private bool isSend = false;
-    private float Kp = 20f;
+    private float Kp = 4;
+    
     
     public Rigidbody rigidBody;
     
@@ -16,6 +17,9 @@ public class ReadData : SerialController
     {
         base.Start();
         rigidBody = this.gameObject.GetComponent<Rigidbody>();
+        
+        // 设置物理更新频率
+        Time.fixedDeltaTime = 1f / 250f;
     }
 
     protected override void Update()
@@ -56,6 +60,7 @@ public class ReadData : SerialController
     
     private void WriteToCache(float AngleValue)
     {
+        
         // 使用最短路径算法计算目标角度
         float targetAngleDeg = CalculateShortestPathAngle(_lastSentAngle, AngleValue);
         

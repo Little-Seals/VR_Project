@@ -15,16 +15,37 @@ BLDCMotor motor = BLDCMotor(7);
 // 创建3相PWM驱动器对象，引脚分别为32,33,25，使能引脚为12
 BLDCDriver3PWM driver = BLDCDriver3PWM(32,33,25,12);
 
-//命令设置
+// 命令设置
 float target_angle = motor.shaft_angle;  // 目标角度变量
+
+
+
+// 握手协议标志
+bool communicationStarted = false;  // 通信是否已启动的标志
 
 // 创建串口通信命令解析器对象
 Commander command = Commander(Serial);
+// 定义启动通信命令的处理函数
+void doStartCommunication(char* cmd)
+{
+    communicationStarted = true;
+    Serial.println("COMMUNICATION_STARTED");
+}
+
 // 定义目标角度设置命令的处理函数
 void doTarget(char* cmd)
 {
-    command.scalar(&target_angle, cmd);
+    // 只有在通信启动后才处理目标角度命令
+    if (communicationStarted) {
+        command.scalar(&target_angle, cmd);
+    }
 }
+
+
+
+// 握手超时设置（毫秒）
+const unsigned long HANDSHAKE_TIMEOUT_MS = 5000;  // 5秒超时
+unsigned long handshakeStartTime = 0;
 
 
 // 函数声明
@@ -44,7 +65,7 @@ void setup() {
     motor.foc_modulation = FOCModulationType::SpaceVectorPWM;  // 使用空间矢量PWM调制
 
     // 运动控制模式设置 - 位置控制
-    motor.controller = MotionControlType::torque;  // 设置为角度位置控制模式
+    motor.controller = MotionControlType::torque;
 
     // 速度PI环设置
     motor.PID_velocity.P = 0.021;  // 速度环比例增益
@@ -73,17 +94,38 @@ void setup() {
 
     command.add('T', doTarget, "target_angle");  // 注册串口命令：'T'命令用于设置目标角度
 
+    // 添加握手命令 'S' - Start communication
+    command.add('S', doStartCommunication, "start_communication");
+
+    // 记录握手开始时间
+    handshakeStartTime = millis();
+
+    // 发送等待握手信号
+    Serial.println("WAITING_FOR_START");
 }
 
 
 void loop() {
+
     motor.loopFOC();
     command.run();
+    // 检查握手超时
+    if (!communicationStarted) {
+        unsigned long currentMillis = millis();
+        if (currentMillis - handshakeStartTime > HANDSHAKE_TIMEOUT_MS) {
+            // 超时后自动启动通信（兼容性处理）
+            communicationStarted = true;
+            Serial.println("COMMUNICATION_STARTED_TIMEOUT");
+        }
+        return;  // 等待期间不执行其他操作
+    }
+
+
+
 
     float curAngle = motor.shaft_angle;
-    motor.move(3 * (target_angle - curAngle) +
-        0.05  * motor.shaft_velocity);
-
+    motor.move(4 * (target_angle - curAngle) +
+    0.00  * motor.shaft_velocity);
 
     // 从传感器获取角度值（弧度制），并转换为度数
     float angle0_deg = sensor.getAngle() * 180.0 / PI;
